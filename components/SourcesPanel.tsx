@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { FileText, ExternalLink, AlertCircle, Globe, BarChart2 } from "lucide-react";
+import { FileText, ExternalLink, AlertCircle, Globe, BarChart2, ChevronLeft, ChevronRight } from "lucide-react";
 import { getREITInfo } from "@/lib/reits";
 
 interface Filing {
@@ -26,15 +26,19 @@ const FORM_COLORS: Record<string, string> = {
   "DEF 14A": "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
 };
 
+const PAGE_SIZE = 5;
+
 export function SourcesPanel({ ticker }: { ticker: string }) {
-  const [data, setData] = useState<FilingsData | null>(null);
+  const [data, setData]       = useState<FilingsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter]   = useState("All");
+  const [page, setPage]       = useState(0);
   const info = getREITInfo(ticker);
   const name = info?.name ?? ticker;
 
   useEffect(() => {
     setLoading(true);
+    setPage(0);
     fetch(`/api/filings?ticker=${ticker}`)
       .then((r) => r.json())
       .then(setData)
@@ -42,31 +46,28 @@ export function SourcesPanel({ ticker }: { ticker: string }) {
       .finally(() => setLoading(false));
   }, [ticker]);
 
-  const forms = ["All", "10-K", "10-Q", "8-K", "DEF 14A"];
+  // Reset page when filter changes
+  useEffect(() => { setPage(0); }, [filter]);
+
+  const forms    = ["All", "10-K", "10-Q", "8-K", "DEF 14A"];
   const filtered = (data?.filings ?? []).filter((f) => filter === "All" || f.form === filter);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated  = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const externalLinks = [
     {
       group: "Earnings & Research",
       links: [
-        { label: "Seeking Alpha — Overview", url: `https://seekingalpha.com/symbol/${ticker}` },
+        { label: "Seeking Alpha — Overview",            url: `https://seekingalpha.com/symbol/${ticker}` },
         { label: "Seeking Alpha — Earnings Transcripts", url: `https://seekingalpha.com/symbol/${ticker}/earnings/transcripts` },
-        { label: "Seeking Alpha — Filings", url: `https://seekingalpha.com/symbol/${ticker}/filings` },
-      ],
-    },
-    {
-      group: "SEC EDGAR",
-      links: [
-        { label: "EDGAR — All Filings", url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${data?.cik ?? ticker}&type=&dateb=&owner=include&count=40` },
-        { label: "EDGAR — 10-K Search", url: `https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22&forms=10-K` },
-        { label: "EDGAR Full-Text Search", url: `https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22` },
+        { label: "Seeking Alpha — Filings",             url: `https://seekingalpha.com/symbol/${ticker}/filings` },
       ],
     },
     {
       group: "Market Data",
       links: [
-        { label: "Yahoo Finance", url: `https://finance.yahoo.com/quote/${ticker}` },
-        { label: "FINRA Bond Data", url: `https://finra-markets.morningstar.com/BondCenter/Default.jsp` },
+        { label: "Yahoo Finance",    url: `https://finance.yahoo.com/quote/${ticker}` },
+        { label: "FINRA Bond Data",  url: `https://finra-markets.morningstar.com/BondCenter/Default.jsp` },
       ],
     },
   ];
@@ -100,7 +101,7 @@ export function SourcesPanel({ ticker }: { ticker: string }) {
       {/* External links */}
       <div>
         <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Research Links</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {externalLinks.map((group) => (
             <div key={group.group}>
               <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">
@@ -173,35 +174,60 @@ export function SourcesPanel({ ticker }: { ticker: string }) {
           </div>
         )}
 
-        {!loading && filtered.length > 0 && (
-          <div className="space-y-1.5">
-            {filtered.map((f) => (
-              <a
-                key={f.accessionNumber}
-                href={f.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all group"
-              >
-                <FileText className="w-4 h-4 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${FORM_COLORS[f.form] ?? "bg-gray-100 text-gray-700"}`}>
-                      {f.form}
-                    </span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{f.description}</span>
+        {!loading && paginated.length > 0 && (
+          <>
+            <div className="space-y-1.5">
+              {paginated.map((f) => (
+                <a
+                  key={f.accessionNumber}
+                  href={f.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all group"
+                >
+                  <FileText className="w-4 h-4 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${FORM_COLORS[f.form] ?? "bg-gray-100 text-gray-700"}`}>
+                        {f.form}
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{f.description}</span>
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      Filed {new Date(f.filingDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {f.reportDate && f.reportDate !== f.filingDate && (
+                        <> · Period ending {new Date(f.reportDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-400 mt-0.5">
-                    Filed {new Date(f.filingDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    {f.reportDate && f.reportDate !== f.filingDate && (
-                      <> · Period ending {new Date(f.reportDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</>
-                    )}
-                  </div>
-                </div>
-                <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
-              </a>
-            ))}
-          </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
+                </a>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" /> Newer
+                </button>
+                <span className="text-xs text-gray-400">
+                  {page + 1} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page === totalPages - 1}
+                  className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  Older <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
