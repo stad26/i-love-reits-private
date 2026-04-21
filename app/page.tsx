@@ -16,7 +16,7 @@ const STEPS = [
   {
     n: "2",
     title: "Enter financials",
-    text: "Add Total FFO and In-Place NOI from the latest earnings press release or supplemental. Annualize quarterly figures by multiplying by 4.",
+    text: "Add FFO/share and In-Place NOI from the press release or supplemental (annualize: Q × 4). Then enter Same Store NOI — current and prior period, or just the YoY growth % — to center the cap rate sensitivity table on actual organic growth.",
   },
   {
     n: "3",

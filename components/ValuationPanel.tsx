@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { BaseAssumptions, SensitivityTable } from "@/lib/types";
-import { effectiveFfoYoYGrowthPercent } from "@/lib/ffoGrowth";
+import { effectiveFfoYoYGrowthPercent, effectiveSameStoreNOIGrowthPercent } from "@/lib/ffoGrowth";
 import { getREITInfo, getPeersBySector, REIT_UNIVERSE } from "@/lib/reits";
 import { QuoteData } from "@/lib/types";
 import { buildPFFOTable, buildCapRateTable, buildNAVTable, heatColor } from "@/lib/sensitivity";
@@ -161,16 +161,17 @@ function RangeBar({ price, low, high }: { price: number | null; low: number | nu
 
 // ─── Peer metrics table ───────────────────────────────────────────────────────
 
-function PeerTable({ quotes, loading }: { quotes: QuoteData[]; loading: boolean }) {
+function PeerTable({ quotes, loading, subjectTicker }: { quotes: QuoteData[]; loading: boolean; subjectTicker: string }) {
   if (loading) return <div className="h-32 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse mt-3" />;
   if (!quotes.length) return null;
 
   const valid = quotes.filter((q) => !q.error && q.price);
   if (!valid.length) return null;
 
-  // Compute medians for relative shading
-  const yields = valid.map((q) => q.dividendYield).filter((v): v is number => v != null);
-  const books  = valid.map((q) => q.priceToBook).filter((v): v is number => v != null);
+  // Compute medians for relative shading (peers only, exclude subject)
+  const peers = valid.filter((q) => q.ticker !== subjectTicker);
+  const yields = peers.map((q) => q.dividendYield).filter((v): v is number => v != null);
+  const books  = peers.map((q) => q.priceToBook).filter((v): v is number => v != null);
   const medianYield = yields.sort((a, b) => a - b)[Math.floor(yields.length / 2)] ?? 0;
   const medianBook  = books.sort((a, b) => a - b)[Math.floor(books.length / 2)] ?? 1;
 
@@ -189,11 +190,15 @@ function PeerTable({ quotes, loading }: { quotes: QuoteData[]; loading: boolean 
         </thead>
         <tbody>
           {valid.map((q) => {
+            const isSubject = q.ticker === subjectTicker;
             const yieldAboveMedian = q.dividendYield != null && q.dividendYield > medianYield;
             const bookAboveMedian  = q.priceToBook  != null && q.priceToBook  > medianBook;
             return (
-              <tr key={q.ticker} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                <td className="py-2 pr-2 font-semibold text-gray-900 dark:text-white">{q.ticker}</td>
+              <tr key={q.ticker} className={`border-b border-gray-100 dark:border-gray-800 ${isSubject ? "bg-blue-50 dark:bg-blue-950/20" : "hover:bg-gray-50 dark:hover:bg-gray-800/50"}`}>
+                <td className="py-2 pr-2 font-semibold text-gray-900 dark:text-white whitespace-nowrap">
+                  {q.ticker}
+                  {isSubject && <span className="ml-1.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-1 py-0.5 rounded">you</span>}
+                </td>
                 <td className="py-2 px-2 text-right font-mono text-gray-700 dark:text-gray-300">{fmtCurrency(q.price)}</td>
                 <td className="py-2 px-2 text-right text-gray-600 dark:text-gray-400">{fmtMarketCap(q.marketCap)}</td>
                 <td className={`py-2 px-2 text-right font-medium ${yieldAboveMedian ? "text-emerald-600 dark:text-emerald-400" : "text-gray-600 dark:text-gray-400"}`}>
@@ -254,15 +259,15 @@ export function ValuationPanel({ ticker, assumptions, currentPrice }: ValuationP
     setPeers(stored);
   }, [ticker, info]);
 
-  // Fetch peer quotes whenever peer list changes
+  // Fetch subject + peer quotes whenever peer list changes (subject always first)
   useEffect(() => {
-    if (!peers.length) return;
     setLoadingPeers(true);
-    fetch(`/api/quote?tickers=${peers.join(",")}`)
+    const tickers = [ticker, ...peers.filter((p) => p !== ticker)];
+    fetch(`/api/quote?tickers=${tickers.join(",")}`)
       .then((r) => r.json())
       .then(setPeerQuotes)
       .finally(() => setLoadingPeers(false));
-  }, [peers]);
+  }, [ticker, peers]);
 
   function updatePeers(newPeers: string[]) {
     setPeers(newPeers);
@@ -296,8 +301,8 @@ export function ValuationPanel({ ticker, assumptions, currentPrice }: ValuationP
     [assumptions],
   );
 
-  // SS NOI growth centers the cap rate table rows; fall back to null (uses 3% default)
-  const noiGrowthRate = useMemo(() => assumptions.sameStoreNOIGrowth ?? null, [assumptions]);
+  // SS NOI growth centers the cap rate table rows; computed from either prior NOI or direct %
+  const noiGrowthRate = useMemo(() => effectiveSameStoreNOIGrowthPercent(assumptions), [assumptions]);
 
   // ── Sensitivity tables ──────────────────────────────────────────────────────
   const pffoTable = useMemo((): SensitivityTable | null => {
@@ -496,7 +501,7 @@ export function ValuationPanel({ ticker, assumptions, currentPrice }: ValuationP
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {peers.length} peers · Div Yield and P/Book shaded relative to peer median.
+                Subject + {peers.length} peers · Div Yield and P/Book shaded relative to peer median.
               </p>
             </div>
             <button
@@ -514,7 +519,7 @@ export function ValuationPanel({ ticker, assumptions, currentPrice }: ValuationP
             </div>
           )}
 
-          <PeerTable quotes={peerQuotes} loading={loadingPeers} />
+          <PeerTable quotes={peerQuotes} loading={loadingPeers} subjectTicker={ticker} />
         </div>
       )}
 

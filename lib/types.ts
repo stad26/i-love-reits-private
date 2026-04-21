@@ -55,8 +55,10 @@ export interface BaseAssumptions {
   ffoGrowthInputMode: "prior_ffo" | "growth_pct";
   ffoYoYGrowthPercent: number | null;    // YoY % — used when ffoGrowthInputMode === "growth_pct"
   priorYearNOI: number | null;           // $mm annualized — same period prior year
-  sameStoreNOI: number | null;           // $mm annualized — same store only (not used in valuation math)
-  sameStoreNOIGrowth: number | null;     // YoY % — pulled directly from disclosure
+  sameStoreNOI: number | null;           // $mm annualized — same store current period
+  priorYearSameStoreNOI: number | null;  // $mm annualized — same store prior year (for computing growth)
+  sameStoreNOIInputMode: "prior_noi" | "growth_pct";
+  sameStoreNOIGrowth: number | null;     // YoY % — used when sameStoreNOIInputMode === "growth_pct"
 }
 
 export const DEFAULT_BASE_ASSUMPTIONS: BaseAssumptions = {
@@ -72,6 +74,8 @@ export const DEFAULT_BASE_ASSUMPTIONS: BaseAssumptions = {
   ffoYoYGrowthPercent: null,
   priorYearNOI: null,
   sameStoreNOI: null,
+  priorYearSameStoreNOI: null,
+  sameStoreNOIInputMode: "prior_noi",
   sameStoreNOIGrowth: null,
 };
 

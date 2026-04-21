@@ -1,7 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { BaseAssumptions, DEFAULT_BASE_ASSUMPTIONS, QuoteData } from "@/lib/types";
-import { effectiveFfoYoYGrowthPercent, impliedPriorFfoPerShareFromGrowth } from "@/lib/ffoGrowth";
+import {
+  effectiveFfoYoYGrowthPercent,
+  impliedPriorFfoPerShareFromGrowth,
+  effectiveSameStoreNOIGrowthPercent,
+  impliedPriorSameStoreNOIFromGrowth,
+} from "@/lib/ffoGrowth";
 import { Tooltip } from "./Tooltip";
 import { RefreshCw, Calculator, AlertCircle } from "lucide-react";
 
@@ -169,6 +174,27 @@ export function AssumptionsPanel({ ticker, assumptions, onChange, onCalculate }:
     setDirty(true);
   }
 
+  function setSameStoreNOIInputMode(mode: "prior_noi" | "growth_pct") {
+    if (mode === assumptions.sameStoreNOIInputMode) return;
+    let next: BaseAssumptions = { ...assumptions, sameStoreNOIInputMode: mode };
+    if (mode === "growth_pct") {
+      const cur = assumptions.sameStoreNOI;
+      const prior = assumptions.priorYearSameStoreNOI;
+      if (cur != null && prior != null && prior > 0) {
+        next.sameStoreNOIGrowth = Math.round((((cur - prior) / prior) * 100) * 1000) / 1000;
+      }
+    } else {
+      const cur = assumptions.sameStoreNOI;
+      const g = assumptions.sameStoreNOIGrowth;
+      if (cur != null && g != null && g > -100) {
+        next.priorYearSameStoreNOI = Math.round((cur / (1 + g / 100)) * 1000) / 1000;
+      }
+    }
+    onChange(next);
+    save(ticker, next);
+    setDirty(true);
+  }
+
   function handleCalculate() {
     onCalculate(assumptions);
     setDirty(false);
@@ -177,6 +203,8 @@ export function AssumptionsPanel({ ticker, assumptions, onChange, onCalculate }:
   // ── Computed intermediates (live, for display only) ───────────────────────────
   const ffoGrowth = effectiveFfoYoYGrowthPercent(assumptions);
   const impliedPriorFfo = impliedPriorFfoPerShareFromGrowth(assumptions);
+  const ssNoiGrowth = effectiveSameStoreNOIGrowthPercent(assumptions);
+  const impliedPriorSsNoi = impliedPriorSameStoreNOIFromGrowth(assumptions);
 
   const sameStoreWarning =
     assumptions.sameStoreNOI != null &&
@@ -333,27 +361,70 @@ export function AssumptionsPanel({ ticker, assumptions, onChange, onCalculate }:
         {/* ── Same Store NOI (Growth Context) ── */}
         <div className="space-y-2">
           <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
-            Growth Context
+            Same Store NOI
           </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 -mt-1">Not used in valuation math — organic growth benchmarking only.</p>
-          <Field label="Same Store Cash NOI" unit="$mm, annualized" field="sameStoreNOI"
-            tooltip="Not used in valuation math. Shows how the existing portfolio is growing organically. Properties owned for full comparative period — excludes acquisitions, dispositions, redevelopments. Annualize: most recent Q × 4."
+          <p className="text-xs text-gray-400 dark:text-gray-500 -mt-1">Growth centers the cap rate sensitivity table.</p>
+
+          {/* Input mode toggle */}
+          <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 p-0.5 gap-0.5 bg-gray-50 dark:bg-gray-800/50">
+            <button
+              type="button"
+              onClick={() => setSameStoreNOIInputMode("prior_noi")}
+              className={`flex-1 text-xs py-1.5 px-2 rounded-md transition-colors ${
+                assumptions.sameStoreNOIInputMode === "prior_noi"
+                  ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm font-medium"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              Prior period SS NOI
+            </button>
+            <button
+              type="button"
+              onClick={() => setSameStoreNOIInputMode("growth_pct")}
+              className={`flex-1 text-xs py-1.5 px-2 rounded-md transition-colors ${
+                assumptions.sameStoreNOIInputMode === "growth_pct"
+                  ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm font-medium"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              YoY growth %
+            </button>
+          </div>
+
+          <Field label="Current Period SS NOI" unit="$mm, annualized" field="sameStoreNOI"
+            tooltip="Same store cash NOI for the current period — properties owned for the full comparative period, excluding acquisitions, dispositions, and redevelopments. Annualize: most recent Q × 4."
             step="1" placeholder="From supplemental"
             value={assumptions.sameStoreNOI} isAutoFilled={af("sameStoreNOI")} onChange={update} />
+
           {sameStoreWarning && (
             <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-2 py-1">
               Same Store NOI should be ≤ In-Place NOI — verify inputs.
             </div>
           )}
-          <Field label="Same Store NOI Growth (YoY)" unit="%" field="sameStoreNOIGrowth"
-            tooltip="Year-over-year same store NOI growth. Pull directly from earnings disclosure — do not calculate from the NOI fields above as the timing may differ. Flag if company does not disclose on a cash basis."
-            step="0.1" suffix="%" placeholder="From press release"
-            value={assumptions.sameStoreNOIGrowth} isAutoFilled={af("sameStoreNOIGrowth")} onChange={update} />
-          {assumptions.sameStoreNOIGrowth != null && (
-            <div className={`text-xs px-2 py-1 rounded-lg font-medium ${assumptions.sameStoreNOIGrowth >= 0 ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400" : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400"}`}>
-              SS NOI growth: <strong>{assumptions.sameStoreNOIGrowth >= 0 ? "+" : ""}{assumptions.sameStoreNOIGrowth.toFixed(1)}%</strong>
+
+          {assumptions.sameStoreNOIInputMode === "prior_noi" ? (
+            <Field label="Prior Year (same period)" unit="$mm, annualized" field="priorYearSameStoreNOI"
+              tooltip="Same store cash NOI for the same period one year ago — used to compute YoY SS NOI growth, which centers the cap rate sensitivity table rows."
+              step="1" placeholder="For YoY growth rate"
+              value={assumptions.priorYearSameStoreNOI} isAutoFilled={af("priorYearSameStoreNOI")} onChange={update} />
+          ) : (
+            <Field label="SS NOI Growth (YoY)" unit="%" field="sameStoreNOIGrowth"
+              tooltip="Year-over-year same store NOI growth — pull directly from earnings disclosure. Centers the cap rate sensitivity table rows."
+              step="0.1" suffix="%" placeholder="e.g. 5.2"
+              value={assumptions.sameStoreNOIGrowth} isAutoFilled={af("sameStoreNOIGrowth")} onChange={update} />
+          )}
+
+          {ssNoiGrowth != null && (
+            <div className={`text-xs px-2 py-1 rounded-lg font-medium ${ssNoiGrowth >= 0 ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400" : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400"}`}>
+              SS NOI growth: <strong>{ssNoiGrowth >= 0 ? "+" : ""}{ssNoiGrowth.toFixed(1)}%</strong>
               <span className="font-normal ml-1 opacity-75">— Cap rate table centered here</span>
             </div>
+          )}
+          {assumptions.sameStoreNOIInputMode === "growth_pct" && impliedPriorSsNoi != null && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              Implied prior SS NOI:{" "}
+              <span className="font-mono font-medium text-gray-700 dark:text-gray-300">${impliedPriorSsNoi.toFixed(1)}mm</span>
+            </p>
           )}
         </div>
 
