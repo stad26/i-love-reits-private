@@ -227,8 +227,6 @@ export function REITDetail({ ticker, onClose }: REITDetailProps) {
               </>
             )}
           </div>
-
-        </div>
       </div>
 
       {/* ── Three-column body ── */}
