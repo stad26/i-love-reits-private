@@ -140,11 +140,8 @@ export function REITDetail({ ticker, onClose }: REITDetailProps) {
           </button>
         </div>
 
-        {/* Market data + Earnings Snapshot — side by side */}
-        <div className="flex gap-6 items-start">
-
-          {/* Left: all market data */}
-          <div className="flex-1 min-w-0 space-y-2">
+        {/* Market data */}
+        <div className="space-y-2">
             {loading && <div className="h-10 w-56 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />}
 
             {!loading && quote && !quote.error && (
@@ -231,11 +228,6 @@ export function REITDetail({ ticker, onClose }: REITDetailProps) {
             )}
           </div>
 
-          {/* Right: Earnings Call snapshot — upload + result inline */}
-          <div className="w-72 flex-shrink-0 border-l border-gray-100 dark:border-gray-800 pl-5">
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Earnings Call Analysis</p>
-            <TranscriptPanel ticker={ticker} />
-          </div>
         </div>
       </div>
 
@@ -300,7 +292,7 @@ export function REITDetail({ ticker, onClose }: REITDetailProps) {
                 : <ChevronDown className="w-4 h-4 text-gray-400" />}
             </button>
             {insightsOpen && (
-              <div className="px-5 pb-5 border-t border-gray-100 dark:border-gray-800">
+              <div className="px-5 pb-5 border-t border-gray-100 dark:border-gray-800 space-y-5">
                 <InsightsPanel
                   ticker={ticker}
                   quote={quote}
@@ -309,6 +301,10 @@ export function REITDetail({ ticker, onClose }: REITDetailProps) {
                   assumptions={legacyAssumptions}
                   scenarios={[]}
                 />
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Earnings Call Analysis</p>
+                  <TranscriptPanel ticker={ticker} />
+                </div>
               </div>
             )}
           </div>

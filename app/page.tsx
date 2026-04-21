@@ -83,16 +83,16 @@ export default function Home() {
               }}
             >
               {/* Gradient blobs */}
-              <div className="absolute -top-16 -left-16 w-72 h-72 rounded-full bg-red-100 dark:bg-red-950/30 blur-3xl opacity-60 pointer-events-none" />
-              <div className="absolute -bottom-16 -right-16 w-72 h-72 rounded-full bg-rose-100 dark:bg-rose-950/20 blur-3xl opacity-50 pointer-events-none" />
+              <div className="absolute -top-16 -left-16 w-72 h-72 rounded-full bg-blue-100 dark:bg-blue-950/30 blur-3xl opacity-50 pointer-events-none" />
+              <div className="absolute -bottom-16 -right-16 w-72 h-72 rounded-full bg-violet-100 dark:bg-violet-950/20 blur-3xl opacity-40 pointer-events-none" />
 
               <div className="relative z-10 flex flex-col items-center gap-5 px-6">
-                <div className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-semibold px-3 py-1.5 rounded-full">
+                <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-semibold px-3 py-1.5 rounded-full">
                   <Heart className="w-3.5 h-3.5 fill-current" />
                   Professional-grade REIT valuation · free
                 </div>
 
-                <h1 className="text-4xl font-extrabold max-w-2xl leading-tight bg-gradient-to-r from-red-500 via-rose-500 to-orange-400 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold max-w-2xl leading-snug bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 bg-clip-text text-transparent">
                   Figure out if a REIT is cheap, expensive, or fairly priced.
                 </h1>
 
@@ -101,7 +101,7 @@ export default function Home() {
                 </p>
 
                 {/* Search */}
-                <div className="w-full max-w-sm ring-2 ring-transparent focus-within:ring-red-300 dark:focus-within:ring-red-700 rounded-xl transition-all duration-200">
+                <div className="w-full max-w-sm ring-2 ring-transparent focus-within:ring-blue-300 dark:focus-within:ring-blue-700 rounded-xl transition-all duration-200">
                   <REITSearch onSelect={setSelectedTicker} />
                 </div>
                 <p className="text-xs text-gray-400 dark:text-gray-500">60+ U.S. REITs · data from Yahoo Finance &amp; SEC EDGAR</p>
@@ -113,8 +113,8 @@ export default function Home() {
               <h2 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center mb-6">How it works</h2>
               <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
                 {STEPS.map((step) => (
-                  <div key={step.n} className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 hover:border-red-200 dark:hover:border-red-800 hover:shadow-sm transition-all">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-rose-400 text-white text-xs font-bold flex items-center justify-center mb-3">
+                  <div key={step.n} className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-sm transition-all">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-600 to-indigo-500 text-white text-xs font-bold flex items-center justify-center mb-3">
                       {step.n}
                     </div>
                     <p className="text-xs font-semibold text-gray-900 dark:text-white mb-1">{step.title}</p>
