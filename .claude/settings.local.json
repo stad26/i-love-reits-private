@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(node -e \"const yf = require\\('/c/Users/steph/Projects/i-love-reits/node_modules/yahoo-finance2'\\); console.log\\(Object.keys\\(yf.default || yf\\).filter\\(k => !k.startsWith\\('_'\\)\\)\\)\")",
+      "Bash(ls /c/Users/steph/Projects/i-love-reits/.env*)"
+    ]
+  }
+}
