@@ -261,12 +261,15 @@ export function ValuationPanel({ ticker, assumptions, currentPrice }: ValuationP
 
   // Fetch subject + peer quotes whenever peer list changes (subject always first)
   useEffect(() => {
+    const controller = new AbortController();
     setLoadingPeers(true);
     const tickers = [ticker, ...peers.filter((p) => p !== ticker)];
-    fetch(`/api/quote?tickers=${tickers.join(",")}`)
+    fetch(`/api/quote?tickers=${tickers.join(",")}`, { signal: controller.signal })
       .then((r) => r.json())
       .then(setPeerQuotes)
+      .catch((e) => { if (e.name !== "AbortError") throw e; })
       .finally(() => setLoadingPeers(false));
+    return () => controller.abort();
   }, [ticker, peers]);
 
   function updatePeers(newPeers: string[]) {
